@@ -56,8 +56,8 @@ namespace Salesforce.Common
                 Method = HttpMethod.Get
             };
 
-            var responseMessage = await _httpClient.SendAsync(request);
-            var response = await responseMessage.Content.ReadAsStringAsync();
+            var responseMessage = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            var response = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (responseMessage.IsSuccessStatusCode)
             {
@@ -103,8 +103,8 @@ namespace Salesforce.Common
                         Method = HttpMethod.Get
                     };
 
-                    var responseMessage = await _httpClient.SendAsync(request);
-                    response = await responseMessage.Content.ReadAsStringAsync();
+                    var responseMessage = await _httpClient.SendAsync(request).ConfigureAwait(false);
+                    response = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                     if (responseMessage.IsSuccessStatusCode)
                     {
@@ -132,7 +132,25 @@ namespace Salesforce.Common
             var json = JsonConvert.SerializeObject(inputObject, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var responseMessage = await _httpClient.PostAsync(url, content);
+            var responseMessage = await _httpClient.PostAsync(url, content).ConfigureAwait(false);
+            var response = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            if (responseMessage.IsSuccessStatusCode)
+            {
+                var r = JsonConvert.DeserializeObject<T>(response);
+                return r;
+            }
+
+            var errorResponse = JsonConvert.DeserializeObject<ErrorResponses>(response);
+            throw new ForceException(errorResponse[0].errorCode, errorResponse[0].message);
+        }
+
+        public async Task<T> HttpPostAsync<T>(object inputObject, Uri uri)
+        {
+            var json = JsonConvert.SerializeObject(inputObject, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var responseMessage = await _httpClient.PostAsync(uri, content);
             var response = await responseMessage.Content.ReadAsStringAsync();
 
             if (responseMessage.IsSuccessStatusCode)
@@ -158,14 +176,14 @@ namespace Salesforce.Common
             var json = JsonConvert.SerializeObject(inputObject);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var responseMessage = await _httpClient.SendAsync(request);
+            var responseMessage = await _httpClient.SendAsync(request).ConfigureAwait(false);
 
             if (responseMessage.IsSuccessStatusCode)
             {
                 return true;
             }
 
-            var response = await responseMessage.Content.ReadAsStringAsync();
+            var response = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
       
             var errorResponse = JsonConvert.DeserializeObject<ErrorResponses>(response);
             throw new ForceException(errorResponse[0].errorCode, errorResponse[0].message);
@@ -188,7 +206,7 @@ namespace Salesforce.Common
                 return true;
             }
 
-            var response = await responseMessage.Content.ReadAsStringAsync();
+            var response = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             var errorResponse = JsonConvert.DeserializeObject<ErrorResponses>(response);
             throw new ForceException(errorResponse[0].errorCode, errorResponse[0].message);
